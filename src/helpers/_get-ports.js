@@ -40,7 +40,7 @@ module.exports = function getPorts (callback) {
       if (err) callback(err)
       else {
         if (!result.Parameter.Value) {
-          callback(ReferenceError('@begin/data requires Sandbox to be running'))
+          callback(ReferenceError('@enhance/data requires Sandbox to be running'))
         }
         else {
           try {

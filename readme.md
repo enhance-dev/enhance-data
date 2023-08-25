@@ -1,19 +1,19 @@
-# Begin Data
-## [`@begin/data`](https://www.npmjs.com/package/@begin/data)
+# Enhance Data
+## [`@enhance/data`](https://www.npmjs.com/package/@enhance/data)
 
-[![GitHub CI status](https://github.com/smallwins/begin-data/workflows/Node%20CI/badge.svg)](https://github.com/smallwins/begin-data/actions?query=workflow%3A%22Node+CI%22)
+[![GitHub CI status](https://github.com/enhance-dev/enhance-data/workflows/Node%20CI/badge.svg)](https://github.com/enhance-dev/enhance-data/actions?query=workflow%3A%22Node+CI%22)
 
-Begin Data is an easy to use, fast, and durable key/value and document store built on top of DynamoDB. Originally built for [Begin serverless apps](https://begin.com), Begin Data’s core API has three simple methods: `get`, `set`, and `destroy`.
+Enhance Data is an easy to use, fast, and durable key/value and document store built on top of DynamoDB. Originally built for [Begin serverless apps](https://begin.com), Begin Data’s core API has three simple methods: `get`, `set`, and `destroy`.
 
 ## Concepts
 
-Begin Data organizes itself into `table`s. A `table` contain documents which are just collections of plain Objects. Documents stored in Begin Data always have the properties `table` and `key`.
+Enhance Data organizes itself into `table`s. A `table` contain documents which are just collections of plain Objects. Documents stored in Begin Data always have the properties `table` and `key`.
 
 Optionally a document can also have a `ttl` property with a UNIX epoch value representing the expiry time for the document.
 
 ## Usage
 
-Begin Data operates on one DynamoDB table named `data` with a partition key `scopeID` and a sort key of `dataID` (and, optionally, a `ttl` for expiring documents).
+Enhance Data operates on one DynamoDB table named `data` with a partition key `scopeID` and a sort key of `dataID` (and, optionally, a `ttl` for expiring documents).
 
 Example `app.arc`:
 
@@ -57,7 +57,7 @@ Resources:
 ### API
 
 ```javascript
-let data = require('@begin/data')
+let data = require('@enhance/data')
 ```
 
 The core API is three methods:
@@ -152,7 +152,7 @@ In this case use the `for await` syntax with a limit set to get paginated data.
 
 ```javascript
 let pages = data.page({ table:'ppl', limit:25 })
-let count = 0  
+let count = 0
 for await (let page of pages) {
   console.log(page)
   count++

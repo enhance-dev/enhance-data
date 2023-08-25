@@ -45,7 +45,7 @@ module.exports = function getTableName (callback) {
       else {
         let table = result.Parameter
         if (!table) {
-          callback(ReferenceError('@begin/data requires a table named data'))
+          callback(ReferenceError('@enhance/data requires a table named data'))
         }
         else {
           tablename = table.Value

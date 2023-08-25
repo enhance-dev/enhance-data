@@ -9,7 +9,7 @@ if (!ARC_ENV) {
   process.env.ARC_ENV = ARC_ENV = 'testing'
 }
 if (!validEnvs.includes(ARC_ENV)) {
-  throw ReferenceError(`ARC_ENV env var is required for use with @begin/data`)
+  throw ReferenceError(`ARC_ENV env var is required for use with @enhance/data`)
 }
 
 
