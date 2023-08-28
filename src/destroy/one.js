@@ -13,6 +13,7 @@ let dynamo = require('../helpers/_dynamo').doc
  * @param {callback} errback - Node style error first callback
  */
 module.exports = function one (params, callback) {
+  if (!params.table) throw Error('missing_table')
   waterfall([
     getTableName,
     function _dynamo (TableName, callback) {
