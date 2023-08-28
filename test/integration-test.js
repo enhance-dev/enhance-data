@@ -14,7 +14,7 @@ test('env', t => {
 
 test('Start sandbox', async t => {
   t.plan(1)
-  await sandbox.start({ cwd: __dirname })
+  await sandbox.start({ quiet: true, cwd: __dirname })
   t.pass('started')
 })
 

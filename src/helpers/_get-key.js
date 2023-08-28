@@ -9,12 +9,10 @@
  * - fallback to 'local' for running in the sandbox
  * - dataID is scoped to staging or production depending on NODE_ENV
  */
-module.exports = function getKey (params) {
-  let { table, key } = params
-  let { ARC_APP_NAME, ARC_ENV, BEGIN_DATA_SCOPE_ID } = process.env
-  let env = ARC_ENV
-  let envKey = env === 'testing' ? 'staging' : (env || 'staging')
-  let scopeID = BEGIN_DATA_SCOPE_ID || ARC_APP_NAME || 'sandbox'
-  let dataID = `${envKey}#${table}#${key}`
-  return { scopeID, dataID }
+module.exports = function getKey ({ table, key }) {
+  if (!table) throw Error('missing_table')
+  if (!key) throw Error('missing_key')
+  // let scopeID = 'sandbox'
+  // let dataID = `#${table}#${key}`
+  return { scopeID: table, dataID: `##${key}` }
 }
