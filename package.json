@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint --fix .",
     "test": "npm run lint && tape test/*-test.js | tap-spec",
-    "t": "node test/integration-test.js | tap-spec",
+    "t": "node test/define-test.js | tap-spec",
     "rc": "npm version prerelease --preid RC"
   },
   "license": "Apache-2.0",
