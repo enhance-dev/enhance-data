@@ -46,6 +46,7 @@ module.exports = function batch (params, callback) {
       let batch = items.map(Item => ({ PutRequest: { Item } }))
       let query = { RequestItems: {} }
       query.RequestItems[TableName] = batch
+      // console.log(JSON.stringify(query, null, 2))
       doc.batchWrite(query, function done (err) {
         if (err) callback(err)
         else {

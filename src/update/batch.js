@@ -4,10 +4,10 @@
  */
 let waterfall = require('run-waterfall')
 let getTableName = require('../helpers/_get-table-name')
-let createKey = require('../helpers/_create-key')
+// let createKey = require('../helpers/_create-key')
 let validate = require('../helpers/_validate')
-let unfmt = require('../helpers/_unfmt')
-let fmt = require('../helpers/_fmt')
+// let unfmt = require('../helpers/_unfmt')
+// let fmt = require('../helpers/_fmt')
 let dynamo = require('../helpers/_dynamo').doc
 
 /**
@@ -23,9 +23,6 @@ module.exports = function batch (params, callback) {
   validate.table(params)
 
   waterfall([
-    function getKeys (callback) {
-      maybeAddKeys(params, callback)
-    },
     function getsTableName (items, callback) {
       getTableName(function done (err, TableName) {
         if (err) callback(err)
@@ -39,7 +36,9 @@ module.exports = function batch (params, callback) {
       })
     },
     function writeKeys (TableName, items, doc, callback) {
-      console.log('update batch called', {TableName, items})
+      doc.blerg = 1
+      console.log('update batch called', { TableName, items })
+      callback()
       /*
       validate.size(items)
       let batch = items.map(Item => ({ PutRequest: { Item } }))

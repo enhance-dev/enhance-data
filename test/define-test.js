@@ -8,7 +8,7 @@ test('start sandbox', async t => {
   t.pass('sandbox.start')
 })
 
-/** basic crud: todo list 
+/** basic crud: todo list */
 test('todos', async t => {
   t.plan(6)
 
@@ -16,7 +16,7 @@ test('todos', async t => {
   let { todos } = data.define({ todos: { } })
 
   // write a todo
-  let result = await todos.set({text: 'watch tv'})
+  let result = await todos.set({ text: 'watch tv' })
   t.ok(result.key, 'query by key')
 
   // get a todo by key
@@ -27,11 +27,11 @@ test('todos', async t => {
   query.done = true
   let updated = await todos.set(query)
   t.ok(updated.key === query.key && updated.done, 'is done')
-  
+
   // batch add todos
-  let res = await todos.set([{text: 'make dinner'}, {text:'feed the cat'}]) 
+  let res = await todos.set([ { text: 'make dinner' }, { text: 'feed the cat' } ])
   t.ok(res.length === 2, 'wrote two todo')
-  
+
   // destroy a todo
   await todos.destroy(updated)
   let count = await todos.count()
@@ -41,40 +41,42 @@ test('todos', async t => {
   let all = await todos.scan()
   t.ok(count === all.length, 'scan()')
   console.log(all)
-})*/
+})
 
-  /*
 test('schemas with more than one table must have unique keys defined', async t => {
   t.plan(2)
   try {
+    // eslint-disable-next-line
     let client = data.define({
       todos: {},
       orders: {},
     })
   }
   catch (e) {
+    // eslint-disable-next-line
     let client = data.define({
-      todos: {key:'todoID'},
-      orders: {key: 'orderID'},
+      todos: { key: 'todoID' },
+      orders: { key: 'orderID' },
     })
     t.pass('collections require unique keys')
   }
   try {
+    // eslint-disable-next-line
     let client = data.define({
-      todos: {key:'id'},
-      orders: {key:'id'},
+      todos: { key: 'id' },
+      orders: { key: 'id' },
     })
   }
   catch (e) {
     t.pass('collections cannot have duplicate keys')
   }
-})*/
+})
 
-  /*
 test('schema that defines a parent child relationship', async t => {
   t.plan(2)
-  
+
   try {
+    // eslint-disable-next-line
     let { lists, items } = data.define({
       lists: {
         key: 'listID',
@@ -84,12 +86,13 @@ test('schema that defines a parent child relationship', async t => {
         parent: 'lists'
       }
     })
-  } 
+  }
   catch (e) {
     t.pass('parent must have child')
   }
 
   try {
+    // eslint-disable-next-line
     let { lists, items } = data.define({
       lists: {
         key: 'listID',
@@ -99,16 +102,17 @@ test('schema that defines a parent child relationship', async t => {
         key: 'itemID',
       }
     })
-  } 
+  }
   catch (e) {
     t.pass('child must have parent')
   }
 })
-*/
 
 test('parent child relationship', async t => {
-  t.plan(3)
-  let { lists, items, tags } = data.define({
+  t.plan(4)
+
+  // can define a parent/child relationship
+  let { lists, items } = data.define({
     lists: {
       key: 'listID',
       child: 'items'
@@ -119,10 +123,12 @@ test('parent child relationship', async t => {
     }
   })
   t.ok(lists, 'can list')
+
   // create a list
-  let one = await lists.set({name: 'mylist'})
+  let one = await lists.set({ name: 'mylist' })
   let two = await lists.get({ listID: one.listID })
   t.ok(one.listID === two.listID, 'listIDs match')
+
   // add a bunch of items:
   let listID = two.listID
   let res = await items.set([
@@ -130,14 +136,19 @@ test('parent child relationship', async t => {
     { text: 'two', listID },
     { text: 'three', listID },
   ])
-  console.log(res)
-  t.pass()
+  t.ok(res.length === 3, 'wrote three')
+
   // parent can deep query all children
-  // let list = await lists.get({ listID, deep: true })
-  // list.items
+  let three = await lists.get({
+    listID: one.listID,
+    deep: true
+  })
+  t.ok(three.items, 'got data in one request')
+  console.log(three)
+  // should we also be query items by listID for same thing??
 })
 
-/** associations: blog 
+/** associations: blog
 test('blog', async t => {
   t.plan(1)
 
@@ -155,7 +166,7 @@ test('blog', async t => {
     },
     posts: {
       key: 'postID',
-      join: ['authors', 'tags'], // you can join as many collections as you want 
+      join: ['authors', 'tags'], // you can join as many collections as you want
       child: 'comments' // you can also declare parent/child 1-to-N relationship
     },
     tags: {
@@ -174,15 +185,15 @@ test('blog', async t => {
     {name: 'ryan'},
     {name: 'ryan2'},
     {name: 'ryan3'}
-  ]) 
+  ])
 
   // each author writes a post
-  
+
   let one = await posts.set({
     authors: [author], // id: author.id works too
-    text: 'big blawg post text here', 
+    text: 'big blawg post text here',
     tags: ['cat', 'dog', 'bird'] // if scalars passed to array we assume they are the key value
-  }) 
+  })
 
   // one post gets a lot of comments
   // await comments.set({ parent: posted[0], text }) // writes posts#postID#comments#commentID
@@ -190,16 +201,16 @@ test('blog', async t => {
   t.ok(team.length === 4, 'four ryans')
 
   // list all posts sorted by date (recent first)
-  // let posts = await posts.get({ sort: 'created' }) 
+  // let posts = await posts.get({ sort: 'created' })
 
   // get a post, its author and any comments
-  // let post = await posts.get({ postID, deep: true }) 
+  // let post = await posts.get({ postID, deep: true })
 
   // get a list of posts by author
-  //let post = await posts.get({ authorID: author }) 
+  //let post = await posts.get({ authorID: author })
 
   // get a list of posts by tag
-  //let post = await posts.get({ tag: 'cat' }) 
+  //let post = await posts.get({ tag: 'cat' })
 
   // await authors.update({id, email})
 })*/

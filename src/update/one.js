@@ -4,10 +4,10 @@
  */
 let waterfall = require('run-waterfall')
 let getTableName = require('../helpers/_get-table-name')
-let createKey = require('../helpers/_create-key')
+// let createKey = require('../helpers/_create-key')
 let validate = require('../helpers/_validate')
-let unfmt = require('../helpers/_unfmt')
-let fmt = require('../helpers/_fmt')
+// let unfmt = require('../helpers/_unfmt')
+// let fmt = require('../helpers/_fmt')
 let dynamo = require('../helpers/_dynamo').doc
 
 /**
@@ -34,9 +34,9 @@ module.exports = function one (params, callback) {
     },
     function write (TableName, Item, doc, callback) {
       validate.size(Item)
-      console.log({TableName, Item})
+      console.log({ TableName, Item })
       callback()
-        /*
+      /*
       let query = {}
       doc.update(query, function done (err) {
         if (err) callback(err)
