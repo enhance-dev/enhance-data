@@ -95,5 +95,6 @@ module.exports = {
     // if this is a join table it must? have a joinID
   },
   get () {},
+  getAll () {},
   destroy () {}
 }

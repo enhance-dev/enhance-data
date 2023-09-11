@@ -109,7 +109,7 @@ test('schema that defines a parent child relationship', async t => {
 })
 
 test('parent child relationship', async t => {
-  t.plan(4)
+  t.plan(5)
 
   // can define a parent/child relationship
   let { lists, items } = data.define({
@@ -138,41 +138,45 @@ test('parent child relationship', async t => {
   ])
   t.ok(res.length === 3, 'wrote three')
 
+  //
+  // parent.getAll() parent.destroyAll
+  //
   // parent can deep query all children
-  let three = await lists.get({
+  let three = await lists.getAll({
     listID: one.listID,
-    deep: true
   })
   t.ok(three.items, 'got data in one request')
   console.log(three)
-  // should we also be query items by listID for same thing??
+
+  // query for child directly
+  let list = await items.get({
+    itemID: three.items[0].itemID,
+  })
+
+  t.pass(list.itemID)
+
+  // - if I delete a list it should delete the items
 })
 
-/** associations: blog
+
+// associations: blog
+/*
 test('blog', async t => {
   t.plan(1)
 
-  // define is only for relationships or associations right now...
-  // schema for validations is a sep problem! but it seems likely to go here
-  // lifecycle is another thing we may want to consider (fire an even event after write)
   let { authors, posts, tags, comments } = data.define({
-    //.get can be passed deep:true to have authors.posts property
-    //.get can be queried by {table: 'authors', postID}
-    //.set: if passed postID creates a relationship
-    //.destroy can be passed deep:true to delete posts that belong to this author
     authors: {
       key: 'id',
       join: 'posts' // join basically means we can pass authors instance methods a postID
     },
     posts: {
       key: 'postID',
-      join: ['authors', 'tags'], // you can join as many collections as you want
+      join: [ 'authors', 'tags' ], // you can join as many collections as you want
       child: 'comments' // you can also declare parent/child 1-to-N relationship
     },
     tags: {
       key: 'tag', // key name must be unique to the entire schema (tables are too)
       join: 'posts'
-      //thru: 'taggables' // creates another collection! what to do here...
     },
     comments: {
       key: 'commentID',
@@ -182,13 +186,15 @@ test('blog', async t => {
 
   // add a few authors
   let team = await authors.set([
-    {name: 'ryan'},
-    {name: 'ryan2'},
-    {name: 'ryan3'}
+    { name: 'ryan' },
+    { name: 'ryan2' },
+    { name: 'ryan3' }
   ])
+  t.pass('yay')
+  console.log(team)
 
   // each author writes a post
-
+/**
   let one = await posts.set({
     authors: [author], // id: author.id works too
     text: 'big blawg post text here',
@@ -213,16 +219,60 @@ test('blog', async t => {
   //let post = await posts.get({ tag: 'cat' })
 
   // await authors.update({id, email})
-})*/
+})
+*/
 
 
 /*
+ *
+rbac system
+- users
+- roles
+- scopes
+
+
 chat program:
 - accounts
 - connections
 - channels
 - messages
+
+// hockey pool system
+// - players (have many team/games)
+// - teams (have many players; on a per game basis)
+// - games (have a date, and many teams)
+
+let { seasons, players, teams, games } = data.define({
+  seasons: {
+    key: 'seasonID', // start/end as YYYY-MM-DD-YYYY-MM-DD
+    child: 'games'
+  },
+  players: {
+    key: 'playerID',
+    join: 'teams',
+    via: 'games',
+  },
+  teams: {
+    key: 'teamID',
+    join: 'players',
+    via: 'games'
+  },
+  games: {
+    parent: 'seasons'
+    // example meta data on a row
+    // when: 'Sept 2, 3p',
+    // where: 'Canadian Tire Centre'
+    // score: [{teamID, goals}, {teamID, goals}]
+  }
+})
 */
+
+// get calendar of games
+// let upcoming = await games.page(begin: `2023-09`)
+//
+// clicking on a game shows the two teams and their players
+// let
+//
 test('shutdown sandbox', async t => {
   t.plan(1)
   await sandbox.end()

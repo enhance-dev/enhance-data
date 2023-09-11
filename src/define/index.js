@@ -30,36 +30,36 @@ module.exports = function define (schema) {
   for (let table of Object.keys(schema)) {
     client[table] = {
 
+      async getAll (params) {
+        validate.getAll({ schema, table, params })
+        let key = schema[table].key
+        let pages = await page({ table, limit: 100, begin: params[key] })
+        let result = []
+        for await (let page of pages) {
+          result = result.concat(page)
+        }
+        let childName = schema[table].child
+        let notChild = k => k.key.includes(':') === false
+        let isChild = k => k.key && k.key.includes(':')
+        let par = fmt({ table, schema, raw: result.find(notChild) })
+        par[childName] = result.filter(isChild).map(v => {
+          return fmt({ schema, table: childName, raw: v })
+        })
+        return par
+      },
+
       /** read row(s) */
       async get (params) {
-        validate.get({ schema, table, item: params })
 
-        // if we are parent/child we can query deep
-        if (params.deep) {
-          // query child rows
-          let key = schema[table].key
-          let pages = await page({ table, limit: 100, begin: params[key] })
-          let result = []
-          for await (let page of pages) {
-            result = result.concat(page)
-          }
-          let childName = schema[table].child
-          let notChild = k => k.key.includes(':') === false
-          let isChild = k => k.key && k.key.includes(':')
-          let par = fmt({ table, schema, raw: result.find(notChild) })
-          par[childName] = result.filter(isChild).map(v => {
-            return fmt({ schema, table: childName, raw: v })
-          })
-          return par
-        }
-
-        // otherwise normal get behavior
+        // direct get behavior
+        // massage items to have correct underlying {table, key} (aka pk/sk)
         let collection = Array.isArray(params)
         let items = collection ? params : [ params ]
         for (let item of items) {
 
           if (!item.table) {
-            item.table = table
+            let child = !!schema[table].parent// if child write row to parent table
+            item.table = child ? schema[table].parent : table
           }
 
           let key = schema[table].key
@@ -80,10 +80,13 @@ module.exports = function define (schema) {
 
       /** write row(s) */
       async set (params) {
+
         validate.set({ schema, table, item: params })
+
         let collection = Array.isArray(params)
         let updated = Date.now()
         let items = collection ? params : [ params ]
+        let joins = [] // add join rows into here
 
         for (let item of items) {
 
@@ -92,7 +95,7 @@ module.exports = function define (schema) {
             item.table = table
           }
 
-          // add the key back in from alias if they gave us one
+          // add the key back in from alias if they gave us on
           let key = schema[table].key
           if (item[key]) {
             item.key = item[key]
@@ -101,21 +104,82 @@ module.exports = function define (schema) {
           // always update ts
           item.updated = updated
 
-          // if this is a child then we need to format the key
+          // if this is a child then we need to re-format the key
+          // parent/child is modelled as parentKey:childTableName:childKey
           let child = !!schema[table].parent
           if (child) {
             let name = schema[table].parent
             let id = schema[name].key
             let parent = item[id]
-            let tmp = await createKey(table)
+            let tmp = item.key || await createKey(table)
             item.table = name // write row to parent iable
             item.key = `${parent}:${table}:${tmp}`
           }
+
+          // if there is a join we may need need to add extra rows
+          let hasJoin = !!schema[table].join
+          if (hasJoin) {
+            let secondTableName = schema[table].join
+            let secondTableKeyName = schema[secondTableName].key
+            let secondTableKeyValue = item[secondTableKeyName]
+            let joining = !!secondTableKeyValue
+            if (joining) {
+              let via = schema[table].via
+              if (via) {
+                let viaKey = item.key || await createKey(table)
+                // through joins are modelled as THREE extra rows
+                // - table: throughTableName key: throughTableName ...attrs
+                // - table: throughTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
+                // - table: throughTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
+                joins.push({
+                  table: via,
+                  kind: 'join',
+                  key: viaKey,
+                  updated
+                })
+                joins.push({
+                  table: via,
+                  kind: 'join',
+                  key: `${viaKey}:${secondTableName}:${secondTableKeyValue}:${table}:${item.key}`,
+                  updated
+                })
+                joins.push({
+                  table: via,
+                  kind: 'join',
+                  key: `${viaKey}:${table}:${item.key}:${secondTableName}:${secondTableKeyValue}`,
+                  updated
+                })
+              }
+              else {
+                // basic joins are modelled as two rows
+                // - table: firstTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
+                // - table: secondTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
+                // now we can query all secondTables items by firstTable and vice versa
+                joins.push({
+                  table,
+                  kind: 'join',
+                  key: `${table}:${item.key}:${secondTableName}:${secondTableKeyValue}`,
+                  updated
+                })
+                joins.push({
+                  table: secondTableName,
+                  kind: 'join',
+                  key: `${secondTableName}:${secondTableKeyValue}:${table}:${item.key}`,
+                  updated
+                })
+              }
+            }
+          } // end hasJoin
         }
 
-        let result = (await set(items)).map(raw => {
+        // add join rows
+        items = items.concat(joins)
+
+        // write rows
+        let result = (await set(items)).filter(i => i?.kind != 'join').map(raw => {
           return fmt({ schema, table, raw })
         })
+
         return collection ? result : result[0]
       },
 
