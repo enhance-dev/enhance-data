@@ -30,24 +30,6 @@ module.exports = function define (schema) {
   for (let table of Object.keys(schema)) {
     client[table] = {
 
-      async getAll (params) {
-        validate.getAll({ schema, table, params })
-        let key = schema[table].key
-        let pages = await page({ table, limit: 100, begin: params[key] })
-        let result = []
-        for await (let page of pages) {
-          result = result.concat(page)
-        }
-        let childName = schema[table].child
-        let notChild = k => k.key.includes(':') === false
-        let isChild = k => k.key && k.key.includes(':')
-        let par = fmt({ table, schema, raw: result.find(notChild) })
-        par[childName] = result.filter(isChild).map(v => {
-          return fmt({ schema, table: childName, raw: v })
-        })
-        return par
-      },
-
       /** read row(s) */
       async get (params) {
 
@@ -187,21 +169,74 @@ module.exports = function define (schema) {
       update () {},
 
       /** remove row(s) */
-      destroy (params) {
+      async destroy (params) {
         validate.destroy({ schema, table, item: params })
+
         let collection = Array.isArray(params)
         let items = collection ? params : [ params ]
+        let children = []
+
         for (let item of items) {
+
           if (!item.table) {
             item.table = table
           }
+
           let key = schema[table].key
           if (item[key]) {
             item.key = item[key]
             delete item[key]
           }
+
+          // if childrows exist destroy those too
+          let parent = !!schema[table].child
+          if (parent) {
+            // find all child rows and add those to the queue to destroy
+            let pages = await page({ table, limit: 100, begin: item.key })
+            for await (let p of pages)
+              for (let r of p) children.push({ table, ...r })
+          }
         }
-        return destroy(items)
+        function dedup (a, b) {
+          a[b.key] = b
+          return a
+        }
+        let uniq = Object.values(items.concat(children).reduce(dedup, {}))
+        return destroy(uniq)
+      },
+
+      /** paginate rows */
+      page ({ limit = 100 }) {
+        return page({ table, limit })
+      },
+
+      /** return total number of items in collection */
+      count () {
+        return count({ table })
+      },
+
+      // -- following methods only available to clients created with data.define -- //
+
+      /** return parent and all child rows */
+      async getAll (params) {
+        validate.getAll({ schema, table, params })
+        let key = schema[table].key
+        let pages = await page({ table, limit: 100, begin: params[key] })
+        let result = []
+        for await (let page of pages) {
+          result = result.concat(page)
+        }
+        if (result.length === 0) {
+          throw Error('not_found')
+        }
+        let childName = schema[table].child
+        let notChild = k => k.key.includes(':') === false
+        let isChild = k => k.key && k.key.includes(':')
+        let par = fmt({ table, schema, raw: result.find(notChild) })
+        par[childName] = result.filter(isChild).map(v => {
+          return fmt({ schema, table: childName, raw: v })
+        })
+        return par
       },
 
       /** scan all rows */
@@ -213,16 +248,6 @@ module.exports = function define (schema) {
             res.push(r)
         return res.map(v => fmt({ schema, table, raw: v }))
       },
-
-      /** paginate rows */
-      page ({ limit = 100 }) {
-        return page({ table, limit })
-      },
-
-      /** return total number of items in collection */
-      count () {
-        return count({ table })
-      }
     }
   }
 
