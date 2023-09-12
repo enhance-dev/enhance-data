@@ -62,7 +62,6 @@ module.exports = function define (schema) {
 
       /** write row(s) */
       async set (params) {
-
         validate.set({ schema, table, item: params })
 
         let collection = Array.isArray(params)
@@ -101,61 +100,70 @@ module.exports = function define (schema) {
           // if there is a join we may need need to add extra rows
           let hasJoin = !!schema[table].join
           if (hasJoin) {
-            let secondTableName = schema[table].join
-            let secondTableKeyName = schema[secondTableName].key
-            let secondTableKeyValue = item[secondTableKeyName]
-            let joining = !!secondTableKeyValue
-            if (joining) {
-              let via = schema[table].via
-              if (via) {
-                let viaKey = item.key || await createKey(table)
-                // through joins are modelled as THREE extra rows
-                // - table: throughTableName key: throughTableName ...attrs
-                // - table: throughTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
-                // - table: throughTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
-                joins.push({
-                  table: via,
-                  kind: 'join',
-                  key: viaKey,
-                  updated
-                })
-                joins.push({
-                  table: via,
-                  kind: 'join',
-                  key: `${viaKey}:${secondTableName}:${secondTableKeyValue}:${table}:${item.key}`,
-                  updated
-                })
-                joins.push({
-                  table: via,
-                  kind: 'join',
-                  key: `${viaKey}:${table}:${item.key}:${secondTableName}:${secondTableKeyValue}`,
-                  updated
-                })
-              }
-              else {
-                // basic joins are modelled as two rows
-                // - table: firstTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
-                // - table: secondTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
-                // now we can query all secondTables items by firstTable and vice versa
-                joins.push({
-                  table,
-                  kind: 'join',
-                  key: `${table}:${item.key}:${secondTableName}:${secondTableKeyValue}`,
-                  updated
-                })
-                joins.push({
-                  table: secondTableName,
-                  kind: 'join',
-                  key: `${secondTableName}:${secondTableKeyValue}:${table}:${item.key}`,
-                  updated
-                })
-              }
+            let j = Array.isArray(schema[table].join) ? schema[table].join : [ schema[table].join ]
+            for (let secondTableName of j) {
+              // if we got a table that matches a join table we join
+              let isJoiningTable = !!item[secondTableName]
+              if (isJoiningTable) {
+                // let secondTableKeyName = schema[secondTableName].key
+                // normalize key into array
+                let secondTableKeys = Array.isArray(item[secondTableName]) ? item[secondTableName] : [ item[secondTableName] ]
+                for (let secondTableKey of secondTableKeys) {
+                  // check for a join table
+                  let via = schema[table].via
+                  if (via) {
+                    let viaKey = item.key || await createKey(table)
+                    // through joins are modelled as THREE extra rows
+                    // - table: throughTableName key: throughTableName ...attrs
+                    // - table: throughTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
+                    // - table: throughTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
+                    joins.push({
+                      table: via,
+                      kind: 'join',
+                      key: viaKey,
+                      updated
+                    })
+                    joins.push({
+                      table: via,
+                      kind: 'join',
+                      key: `${viaKey}:${secondTableName}:${secondTableKey}:${table}:${item.key}`,
+                      updated
+                    })
+                    joins.push({
+                      table: via,
+                      kind: 'join',
+                      key: `${viaKey}:${table}:${item.key}:${secondTableName}:${secondTableKey}`,
+                      updated
+                    })
+                  }
+                  else {
+                    // basic joins are modelled as two rows
+                    // - table: firstTableName key: firstTableName:firstTableKey:secondTableName:secondTableKey
+                    // - table: secondTableName key: secondTableName:secondTableKey:firstTableName:firstTableKey
+                    // now we can query all secondTables items by firstTable and vice versa
+                    joins.push({
+                      table,
+                      kind: 'join',
+                      key: `${table}:${item.key}:${secondTableName}:${secondTableKey}`,
+                      updated
+                    })
+                    joins.push({
+                      table: secondTableName,
+                      kind: 'join',
+                      key: `${secondTableName}:${secondTableKey}:${table}:${item.key}`,
+                      updated
+                    })
+
+                  } // end via check
+                }
+              } // end isJoiningTable
             }
           } // end hasJoin
         }
 
-        // add join rows
         items = items.concat(joins)
+
+        // console.log('write', items)
 
         // write rows
         let result = (await set(items)).filter(i => i?.kind != 'join').map(raw => {
@@ -164,9 +172,6 @@ module.exports = function define (schema) {
 
         return collection ? result : result[0]
       },
-
-      /** update row(s) */
-      update () {},
 
       /** remove row(s) */
       async destroy (params) {

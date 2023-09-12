@@ -97,7 +97,43 @@ test('one-to-many', async t => {
 })
 
 
-// associations: blog
+test('many-to-many', async t => {
+  t.plan(3)
+  let { users, roles, scopes } = data.define({
+    users: {
+      key: 'userID',
+      join: 'roles'
+    },
+    roles: {
+      key: 'role',
+      join: [ 'users', 'scopes' ]
+    },
+    scopes: {
+      key: 'scope',
+      join: 'roles'
+    }
+  })
+  // create an admin role with ability to read and write
+  let role = await roles.set({ role: 'admin', scopes: [ 'read', 'write' ] })
+  t.ok(role.role === 'admin', 'admin role created')
+  console.log(role)
+
+  // create a user that has the admin role
+  let me = await users.set({ name: 'brian', userID: 'xxx', roles: [ 'admin' ] })
+  t.pass()
+  console.log(me)
+
+  let welp = await scopes.scan()
+  t.pass()
+  console.log(welp)
+
+  // check if a user has a particular scope
+  // get all scopes for a given role
+  // get all roles for a given scope
+  // get all users for a given role
+  // get all scopes for a given role
+})
+
 /*
 test('blog', async t => {
   t.plan(1)
@@ -163,10 +199,6 @@ test('blog', async t => {
 
 /*
  *
-rbac system
-- users
-- roles
-- scopes
 
 
 chat program:
