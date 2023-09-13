@@ -91,7 +91,7 @@ All documents have a `key`. If no `key` is given, `set` will generate a unique `
 let token = await data.set({
   table: 'tokens',
 })
-// {table:'tokens', key:'LCJkYX9jYWwidW50RhSU'}
+// {key:'LCJkYX9jYWwidW50RhSU'}
 ```
 
 Batch save multiple documents at once by passing an Array of Objects.

@@ -42,15 +42,20 @@ module.exports = function page (params, callback) {
       let query = {
         TableName,
         Limit: params.limit || 10,
-        KeyConditionExpression: '#scopeID = :scopeID and begins_with(#dataID, :dataID)',
+        KeyConditionExpression: '#scopeID = :scopeID', // and begins_with(#dataID, :dataID)',
         ExpressionAttributeNames: {
           '#scopeID': 'scopeID',
-          '#dataID': 'dataID'
+          //  '#dataID': 'dataID'
         },
         ExpressionAttributeValues: {
           ':scopeID': scopeID,
-          ':dataID': dataID,
+          // ':dataID': dataID,
         }
+      }
+      if (params.begin) {
+        query.KeyConditionExpression += ' and begins_with(#dataID, :dataID)'
+        query.ExpressionAttributeNames['#dataID'] = 'dataID'
+        query.ExpressionAttributeValues[':dataID'] = dataID
       }
       if (params.cursor) {
         query.ExclusiveStartKey = JSON.parse(Buffer.from(params.cursor, 'base64').toString('utf8'))
@@ -61,8 +66,9 @@ module.exports = function page (params, callback) {
   function paged (err, result) {
     if (err) callback(err)
     else {
-      let exact = item => item.table === params.table
-      let returns = result.Items.map(unfmt).filter(exact)
+      // ensure the 'table' matches the one requested
+      let exact = item => item.scopeID === params.table && item.dataID != `${params.table}-seq`
+      let returns = result.Items.filter(exact).map(unfmt)
       if (result.LastEvaluatedKey)
         returns.cursor = Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
       callback(null, returns)

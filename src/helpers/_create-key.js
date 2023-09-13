@@ -9,7 +9,6 @@ let Hashids = require('@begin/hashid')
 let hash = new Hashids
 
 module.exports = function createKey (table, callback) {
-  let { ARC_APP_NAME = 'sandbox', BEGIN_DATA_SCOPE_ID } = process.env
   waterfall([
     getTableName,
     function _dynamo (TableName, callback) {
@@ -22,7 +21,7 @@ module.exports = function createKey (table, callback) {
       db.updateItem({
         TableName,
         Key: {
-          'scopeID': { S: BEGIN_DATA_SCOPE_ID || ARC_APP_NAME },
+          'scopeID': { S: table },
           'dataID': { S: `${table}-seq` }
         },
         AttributeUpdates: {

@@ -19,6 +19,8 @@ let destroy = require('./destroy')
 let page = require('./page')
 let count = require('./count')
 let { incr, decr } = require('./helpers/_atomic-counters')
+let define = require('./define')
+let update = require('./update')
 
 module.exports = {
   get,
@@ -28,4 +30,6 @@ module.exports = {
   count,
   incr,
   decr,
+  define,
+  update,
 }

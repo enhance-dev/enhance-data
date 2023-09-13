@@ -14,7 +14,7 @@ test('env', t => {
 
 test('Start sandbox', async t => {
   t.plan(1)
-  await sandbox.start({ cwd: __dirname })
+  await sandbox.start({ quiet: true, cwd: __dirname })
   t.pass('started')
 })
 
@@ -47,7 +47,7 @@ test('destroy', async t => {
   let junk = await data.set({ table: 'junk', noop: true })
   t.ok(junk['key'], 'table now has a key')
 
-  await data.destroy(junk)
+  await data.destroy({ table: 'junk', ...junk })
   let count = await data.count({ table: 'junk' })
   t.ok(count === 0, 'item destroyed')
 })
@@ -100,21 +100,24 @@ test('batch destroy', async t => {
 test('batch get', async t => {
   t.plan(1)
 
+  let table = 'mountains'
   let mountains = [
-    { table: 'mountains', name: 'golden ears' },
-    { table: 'mountains', name: 'baker' },
-    { table: 'mountains', name: 'sky pilot' },
+    { table, name: 'golden ears' },
+    { table, name: 'baker' },
+    { table, name: 'sky pilot' },
   ]
-
   let mtns = await data.set(mountains)
-  let result = await data.get(mtns)
+  let result = await data.get(mtns.map(m => {
+    m.table = table
+    return m
+  }))
 
   t.ok(result.length === 3, 'read mountains')
   console.log(result)
 })
 
 test('incr/decr', async t => {
-  t.plan(10)
+  t.plan(8)
 
   let table = 'things-i-like'
   let key = 'trees'
@@ -122,14 +125,12 @@ test('incr/decr', async t => {
 
   let incrRes = await data.incr({ table, key, prop })
   t.ok(incrRes.mycount === 1, 'incrRes is one')
-  t.ok(incrRes.table === table, 'incrRes.table is correct')
   t.ok(incrRes.key === key, 'incrRes.key is correct')
   t.ok(incrRes.scopeID === undefined, 'incrRes.scopeID is undefined')
   t.ok(incrRes.dataID === undefined, 'incrRes.dataID is undefined')
 
   let decrRes = await data.decr({ table, key, prop })
   t.ok(decrRes.mycount === 0, 'decrRes is zero')
-  t.ok(decrRes.table === table, 'decrRes.table is correct')
   t.ok(decrRes.key === key, 'decrRes.key is correct')
   t.ok(decrRes.scopeID === undefined, 'decrRes.scopeID is undefined')
   t.ok(decrRes.dataID === undefined, 'decrRes.dataID is undefined')
